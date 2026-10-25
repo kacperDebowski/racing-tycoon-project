@@ -3,7 +3,7 @@ import random
 class RaceModel:
     def __init__(self):
         self.laps = 0
-        self.max_laps = 15
+        self.max_laps = 56 
         self.tire_wear = 100.0
         self.fuel = 100.0
         
@@ -13,9 +13,13 @@ class RaceModel:
         self.pit_timer = 0
         self.lap_progress = 0.0
         self.lap_timer = 0.0
+        
+        # --- ZARZĄDZANIE PAUZĄ ---
+        self.is_paused = False
+        self.saved_status = ""
 
         self.weather = "Słonecznie"
-        self.weather_timer = random.randint(150, 400)
+        self.weather_timer = random.randint(300, 800)
         self.vsc_active = False
         self.vsc_timer = 100
 
@@ -30,17 +34,32 @@ class RaceModel:
         self.best_sectors = [999.9, 999.9, 999.9]
         self.sector_colors = [0, 0, 0] 
 
-        self.leader_progress = 0.0
-        self.gap_to_leader = 0.0
+        bot_names = ["VER", "NOR", "LEC", "SAI", "PIA", "RUS", "HAM", "ALO", 
+                     "TSU", "STR", "HUL", "MAG", "GAS", "OCO", "ALB", "COL", 
+                     "BOT", "ZHO", "LAW"]
+        self.bots = []
+        for name in bot_names:
+            self.bots.append({
+                'name': name,
+                'progress': 0.0,
+                'speed': random.uniform(0.00330, 0.00342), 
+                'last_lap': 0,
+                'pit_strategy': [random.randint(18, 28), random.randint(38, 48)],
+                'pit_timer': 0
+            })
 
     def update(self):
+        # Jeśli gra jest zapauzowana, model całkowicie przerywa klatkę obliczeniową
+        if self.is_paused:
+            return
+
         if self.laps >= self.max_laps:
             self.status = "Koniec wyścigu!"
             self.lap_progress = 0.0
             return
 
         self._update_weather_and_events()
-        self._update_leader()
+        self._update_bots()
 
         if self.in_pit:
             self.pit_timer -= 1
@@ -49,7 +68,6 @@ class RaceModel:
                 self.in_pit = False
                 self.compound = self.next_compound
                 self.tire_wear = 100.0
-                self.fuel = 100.0
                 self.status = "Wyjazd z boksu!"
                 self.lap_progress = 0.0 
                 self.lap_timer = 0.0
@@ -65,63 +83,48 @@ class RaceModel:
         else:
             self.status = f"Na torze | Silnik: {self.engine_mode}"
         
-        # --- ZAAWANSOWANA FIZYKA JAZDY ---
-        
-        # 1. Baza prędkości
         step = 0.0033 
         
-        # 2. Wpływ mieszanki opon
         compound_speed = {'Soft': 0.0004, 'Hard': -0.0001, 'Wet': -0.0008}
         if self.weather == 'Deszcz':
             if self.compound == 'Wet': compound_speed['Wet'] = 0.0005
-            else: compound_speed[self.compound] = -0.0015 # Slicki na mokrym lodowisku
+            else: compound_speed[self.compound] = -0.0015
         step += compound_speed.get(self.compound, 0)
         
-        # 3. Wpływ wagi paliwa (Lżejsze auto = szybsze)
         fuel_bonus = ((100.0 - self.fuel) / 100.0) * 0.0004
         step += fuel_bonus
         
-        # 4. Kara za zniszczone opony (Zużyte opony = uślizg i mniejsza prędkość)
-        tire_penalty = ((100.0 - self.tire_wear) / 100.0) * 0.0006
+        if self.tire_wear <= 0:
+            self.tire_wear = 0.0
+            tire_penalty = 0.0025 
+        else:
+            tire_penalty = ((100.0 - self.tire_wear) / 100.0) * 0.0006
         step -= tire_penalty
 
-        # 5. Wpływ Trybu Silnika
-        if self.engine_mode == 'Eco': 
-            step -= 0.0004
-        elif self.engine_mode == 'Push': 
-            step += 0.0005
+        if self.engine_mode == 'Eco': step -= 0.0004
+        elif self.engine_mode == 'Push': step += 0.0005
 
-        # 6. Wirtualny Samochód Bezpieczeństwa (Tnie prędkość drastycznie)
-        if self.vsc_active: 
-            step *= 0.6
+        if self.vsc_active: step *= 0.6
 
-        # --- ZUŻYCIE ZASOBÓW ---
-        
-        # Degradacja opon zależy teraz od wybranego trybu silnika! (Push zjada opony)
-        base_deg = {'Soft': 0.08, 'Hard': 0.04, 'Wet': 0.06}
+        base_deg = {'Soft': 0.018, 'Hard': 0.009, 'Wet': 0.014}
         if self.weather != 'Deszcz' and self.compound == 'Wet': 
-            base_deg['Wet'] = 0.3 # Opony deszczowe palą się na suchym asfalcie
+            base_deg['Wet'] = 0.1 
             
         engine_wear_mult = {'Eco': 0.6, 'Standard': 1.0, 'Push': 1.6}
+        self.tire_wear -= base_deg[self.compound] * engine_wear_mult[self.engine_mode]
         
-        current_deg = base_deg[self.compound] * engine_wear_mult[self.engine_mode]
-        self.tire_wear -= current_deg + random.uniform(0, 0.01)
-        
-        # Spalanie paliwa
-        fuel_consumption = {'Eco': 0.02, 'Standard': 0.035, 'Push': 0.06}
+        fuel_consumption = {'Eco': 0.004, 'Standard': 0.006, 'Push': 0.010}
         self.fuel -= fuel_consumption[self.engine_mode]
 
-        # Aktualizacja pozycji i czasu
+        if self.fuel <= 0:
+            self.status = "DNF - Brak paliwa!"
+            return
+
         self.lap_progress += step + random.uniform(-0.0001, 0.0001)
         self.lap_timer += 0.05 
 
-        if self.tire_wear <= 0 or self.fuel <= 0:
-            self.status = "DNF - Awaria z braku zasobów!"
-            return
-
         self._record_sectors()
 
-        # Koniec okrążenia
         if self.lap_progress >= 1.0:
             self.lap_progress = 0.0
             self.last_lap_time = self.lap_timer
@@ -180,17 +183,47 @@ class RaceModel:
                 else:
                     self.vsc_timer = 100
 
-    def _update_leader(self):
-        # Lider teraz też "traci wagę paliwa", dzięki czemu z każdym okrążeniem jest o ułamek sekundy szybszy
-        leader_step = 0.00355 + (self.laps * 0.00001)
+    def _update_bots(self):
+        for bot in self.bots:
+            if bot['pit_timer'] > 0:
+                bot['pit_timer'] -= 1
+                continue
+            
+            bot_step = bot['speed'] + (int(bot['progress']) * 0.000005) 
+            if self.weather == 'Deszcz': bot_step *= 0.8
+            if self.vsc_active: bot_step *= 0.6
+            
+            bot['progress'] += bot_step
+            
+            curr_lap = int(bot['progress'])
+            if curr_lap > bot['last_lap']:
+                bot['last_lap'] = curr_lap
+                if curr_lap in bot['pit_strategy']:
+                    bot['pit_timer'] = 100
+
+    def get_standings(self):
+        standings = []
+        standings.append({'name': 'GRACZ', 'progress': self.laps + self.lap_progress, 'is_player': True})
+        for bot in self.bots:
+            standings.append({'name': bot['name'], 'progress': bot['progress'], 'is_player': False})
         
-        if self.weather == 'Deszcz': leader_step = 0.0028
-        if self.vsc_active: leader_step *= 0.6
+        standings.sort(key=lambda x: x['progress'], reverse=True)
         
-        self.leader_progress += leader_step
-        player_total_progress = self.laps + self.lap_progress
-        diff_laps = self.leader_progress - player_total_progress
-        self.gap_to_leader = diff_laps * 15.0 
+        formatted = []
+        leader_prog = standings[0]['progress']
+        for i, s in enumerate(standings):
+            if i == 0:
+                gap = "LIDER"
+            else:
+                gap_sec = (leader_prog - s['progress']) * 15.0 
+                gap = f"+{gap_sec:.3f}s"
+            formatted.append({
+                'pos': i + 1,
+                'name': s['name'],
+                'gap': gap,
+                'is_player': s['is_player']
+            })
+        return formatted
 
     def call_pitstop(self):
         if not self.in_pit and not self.pit_requested:
@@ -204,3 +237,16 @@ class RaceModel:
     def set_engine_mode(self, mode):
         if mode in ["Eco", "Standard", "Push"]:
             self.engine_mode = mode
+
+    # --- NOWA METODA LOGIKI PAUZY ---
+    def toggle_pause(self):
+        if "Koniec" in self.status or "DNF" in self.status:
+            return
+            
+        self.is_paused = not self.is_paused
+        
+        if self.is_paused:
+            self.saved_status = self.status
+            self.status = "PAUZA (Wciśnij spację, aby wznowić)"
+        else:
+            self.status = self.saved_status
