@@ -15,7 +15,7 @@ class ConsoleView:
         self.track_offset_x = 55
         
         self.track_art = [
-            " ████████████                                                                                    ",
+            " ██████████████                                                                                    ",
             "██             ██                                                                                ",
             "██             ██                                                                                ",
             " █               ██                                                                              ",
@@ -76,7 +76,7 @@ class ConsoleView:
             remaining.remove(next_p)
             current = next_p
             
-        return path
+        return path[::-1]
 
     def init_colors(self):
         curses.start_color()
