@@ -100,7 +100,7 @@ class ConsoleView:
 
     def draw_static_ui(self):
         self.stdscr.clear()
-        self.stdscr.addstr(0, 2, "🏁 RACING TYCOON - GP WŁOCH (MONZA) 🏁", curses.A_BOLD | curses.color_pair(4))
+        self.stdscr.addstr(0, 2, "🏁 RACING TYCOON 🏁", curses.A_BOLD | curses.color_pair(4))
         
         # --- 1. LEWA KOLUMNA (Telemetria) ---
         self.stdscr.addstr(11, 2, "[ SEKTORY ]".ljust(25, "-"), curses.color_pair(4))
@@ -118,7 +118,7 @@ class ConsoleView:
             self.stdscr.addstr(self.track_offset_y + i, self.track_offset_x, line, curses.color_pair(9))
             
         # Oznaczenie mety na dole toru
-        self.stdscr.addstr(self.track_offset_y + 23, self.track_offset_x + 40, "=== START / META ===", curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(self.track_offset_y + 24, self.track_offset_x + 40, "=== START | META ===", curses.color_pair(4) | curses.A_BOLD)
             
         # --- 3. PRAWA KOLUMNA (Timing Tower F1) ---
         tower_x = 155
