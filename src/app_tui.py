@@ -9,7 +9,6 @@ class ConsoleView:
         curses.curs_set(0)
         self.stdscr.nodelay(True)
         
-        # --- ZMNIEJSZONE WYMAGANIA ROZDZIELCZOŚCI ---
         max_y, max_x = self.stdscr.getmaxyx()
         if max_x < 155 or max_y < 28:
             raise RuntimeError(f"Terminal jest za mały! Wymagane min. 155x28. Obecny rozmiar: {max_x}x{max_y}.\n"
@@ -18,9 +17,8 @@ class ConsoleView:
         self.init_colors()
         
         self.track_offset_y = 1
-        self.track_offset_x = 52  # Przysunięto tor mocniej do lewej
+        self.track_offset_x = 52  
         
-        # Oczyszczony z pustych spacji ASCII Art
         self.track_art = [
             " ████████████",
             "██             ██",
