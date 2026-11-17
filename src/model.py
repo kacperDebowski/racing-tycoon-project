@@ -206,8 +206,6 @@ class RaceModel:
         self.pit_timer = 0
         self.lap_progress = 0.0
         self.lap_timer = 0.0
-
-        # --- ZARZĄDZANIE PAUZĄ ---
         self.is_paused = False
         self.saved_status = ""
 
@@ -295,7 +293,7 @@ class RaceModel:
         team = TEAMS[self.team_id]
 
         if self.pit_requested:
-            self.status = "Zjazd na metę (IN-LAP)"
+            self.status = "Zjazd do PIT (IN-LAP)"
         elif self.vsc_active:
             self.status = "VSC - ZWOLNIJ!"
         else:

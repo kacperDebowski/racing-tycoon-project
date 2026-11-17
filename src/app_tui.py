@@ -17,7 +17,11 @@ class ConsoleView:
         self.init_colors()
         
         self.track_offset_y = 1
+<<<<<<< HEAD
         self.track_offset_x = 42
+=======
+        self.track_offset_x = 52  
+>>>>>>> f07f8083645b3e1a539e26d520d4395e9458a0eb
         
         self.track_art = [
             " ████████████",
