@@ -9,7 +9,6 @@ class ConsoleView:
         curses.curs_set(0)
         self.stdscr.nodelay(True)
         
-        # --- ZMNIEJSZONE WYMAGANIA ROZDZIELCZOŚCI ---
         max_y, max_x = self.stdscr.getmaxyx()
         if max_x < 155 or max_y < 28:
             raise RuntimeError(f"Terminal jest za mały! Wymagane min. 155x28. Obecny rozmiar: {max_x}x{max_y}.\n"
@@ -18,9 +17,8 @@ class ConsoleView:
         self.init_colors()
         
         self.track_offset_y = 1
-        self.track_offset_x = 52  # Przysunięto tor mocniej do lewej
+        self.track_offset_x = 42
         
-        # Oczyszczony z pustych spacji ASCII Art
         self.track_art = [
             " ████████████",
             "██             ██",
@@ -43,8 +41,8 @@ class ConsoleView:
             "          ██                                                                   ██",
             "           █                                                                    ██",
             "            █                                                                    ██",
-            "             ██                                                                ██",
-            "               ███                                                           ██",
+            "             ██                  █                                             ██",
+            "               ███            ██ █                                           ██",
             "                  ███████████  █████████████████████████████████████████"
         ]
         
@@ -82,35 +80,35 @@ class ConsoleView:
         curses.init_pair(10, curses.COLOR_RED, curses.COLOR_WHITE)  
 
     def draw_progress_bar(self, y, x, label, value, max_value, color_pair):
-        width = 20
+        width = 16
         filled = int((value / max_value) * width)
         filled = max(0, min(width, filled))
         bar = "█" * filled + "-" * (width - filled)
-        text = f"{label}: [{bar}] {value:5.1f}%".ljust(45)
+        text = f"{label}: [{bar}] {value:5.1f}%".ljust(39)
         self.stdscr.addstr(y, x, text, curses.color_pair(color_pair))
 
     def draw_static_ui(self):
         self.stdscr.clear()
-        self.stdscr.addstr(0, 2, "🏁 RACING TYCOON 🏁", curses.A_BOLD | curses.color_pair(4))
+        self.stdscr.addstr(0, 2, "🏁 RACING TYCOON - GP WŁOCH (MONZA) 🏁", curses.A_BOLD | curses.color_pair(4))
         
-        self.stdscr.addstr(11, 2, "[ SEKTORY ]".ljust(25, "-"), curses.color_pair(4))
-        self.stdscr.addstr(16, 2, "[ STEROWANIE ]".ljust(50, "-"), curses.color_pair(4))
+        self.stdscr.addstr(11, 2, "[ SEKTORY ]".ljust(22, "-"), curses.color_pair(4))
+        self.stdscr.addstr(16, 2, "[ STEROWANIE ]".ljust(39, "-"), curses.color_pair(4))
         
-        self.stdscr.addstr(17, 2, "[1] Eco | [2] Standard | [3] Push  (Tryb Silnika)")
-        self.stdscr.addstr(18, 2, "[T] Opony  |  [P] Pit Stop  |  [SPACJA] Pauza")
-        self.stdscr.addstr(19, 2, "[Q] Zakończ symulację")
+        self.stdscr.addstr(17, 2, "[1] Eco | [2] Standard | [3] Push")
+        self.stdscr.addstr(18, 2, "[T] Opony | [P] Pit | [SPACJA] Pauza")
+        self.stdscr.addstr(19, 2, "[M] Tryb Graficzny (GUI) | [Q] Wyjdź")
         
-        self.stdscr.addstr(6, 2, "Opony (Obecne): ")
-        self.stdscr.addstr(6, 28, "Zjazd po: ")
+        self.stdscr.addstr(6, 2, "Opony: ")
+        self.stdscr.addstr(6, 20, "Zjazd po: ")
 
         for i, line in enumerate(self.track_art):
             self.stdscr.addstr(self.track_offset_y + i, self.track_offset_x, line, curses.color_pair(9))
             
         start_y, start_x = self.path[0]
         self.stdscr.addstr(self.track_offset_y + start_y, self.track_offset_x + start_x, "█", curses.color_pair(10))
-        self.stdscr.addstr(self.track_offset_y + start_y + 1, self.track_offset_x + start_x - 10, "=== START / META ===", curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(self.track_offset_y + start_y + 1, self.track_offset_x + start_x - 9, "=== START / META ===", curses.color_pair(4) | curses.A_BOLD)
             
-        tower_x = 153  # Przysunięto wieżę wyników do toru
+        tower_x = 126
         self.stdscr.addstr(1, tower_x, "===========================", curses.color_pair(4))
         self.stdscr.addstr(2, tower_x, " 🏁 TABELA WYNIKÓW (20) 🏁 ", curses.color_pair(4) | curses.A_BOLD)
         self.stdscr.addstr(3, tower_x, "===========================", curses.color_pair(4))
@@ -119,11 +117,11 @@ class ConsoleView:
         self.stdscr.refresh()
 
     def update(self, model):
-        self.stdscr.addstr(2, 2, f"Okrążenie: {model.laps}/{model.max_laps}".ljust(25), curses.A_BOLD)
+        self.stdscr.addstr(2, 2, f"Okrążenie: {model.laps}/{model.max_laps}".ljust(20), curses.A_BOLD)
         
         weather_icon = "☀" if model.weather == "Słonecznie" else ("☁" if model.weather == "Pochmurno" else "☂")
         weather_color = 2 if model.weather == "Słonecznie" else (4 if model.weather == "Pochmurno" else 8)
-        self.stdscr.addstr(2, 30, f"Pogoda: {weather_icon} {model.weather}".ljust(20), curses.color_pair(weather_color) | curses.A_BOLD)
+        self.stdscr.addstr(2, 22, f"{weather_icon} {model.weather}".ljust(18), curses.color_pair(weather_color) | curses.A_BOLD)
 
         if "PAUZA" in model.status:
             status_color = curses.color_pair(2) | curses.A_BLINK | curses.A_BOLD
@@ -134,38 +132,38 @@ class ConsoleView:
         else:
             status_color = curses.color_pair(1)
             
-        self.stdscr.addstr(3, 2, f"Status: {model.status}".ljust(50), status_color)
+        self.stdscr.addstr(3, 2, f"Status: {model.status}".ljust(39), status_color)
         
         if model.vsc_active:
-            self.stdscr.addstr(4, 2, ">>> VSC - ZWOLNIJ! <<<".ljust(50), curses.color_pair(2) | curses.A_BLINK | curses.A_BOLD)
+            self.stdscr.addstr(4, 2, ">>> VSC - ZWOLNIJ! <<<".ljust(39), curses.color_pair(2) | curses.A_BLINK | curses.A_BOLD)
         else:
-            self.stdscr.addstr(4, 2, "".ljust(50))
+            self.stdscr.addstr(4, 2, "".ljust(39))
 
         compound_colors = {"Soft": 3, "Hard": 7, "Wet": 8}
         c_col = compound_colors.get(model.compound, 7)
-        self.stdscr.addstr(6, 18, f"{model.compound}".ljust(8), curses.color_pair(c_col) | curses.A_BOLD)
+        self.stdscr.addstr(6, 9, f"{model.compound}".ljust(8), curses.color_pair(c_col) | curses.A_BOLD)
         
         n_col = compound_colors.get(model.next_compound, 7)
         pit_blink = curses.A_BLINK if model.pit_requested else 0
-        self.stdscr.addstr(6, 38, f"{model.next_compound}".ljust(8), curses.color_pair(n_col) | curses.A_BOLD | pit_blink)
+        self.stdscr.addstr(6, 30, f"{model.next_compound}".ljust(8), curses.color_pair(n_col) | curses.A_BOLD | pit_blink)
 
         tire_color = 1 if model.tire_wear > 50 else (2 if model.tire_wear > 20 else 3)
         fuel_color = 1 if model.fuel > 40 else (2 if model.fuel > 20 else 3)
         
-        tire_label = "Zużycie Opon" if model.tire_wear > 0 else "KAPEĆ (Zwolnij!)"
+        tire_label = "Opony " if model.tire_wear > 0 else "KAPEĆ!"
         self.draw_progress_bar(8, 2, tire_label, model.tire_wear, 100.0, tire_color)
-        self.draw_progress_bar(9, 2, "Stan Paliwa ", model.fuel, 100.0, fuel_color)
+        self.draw_progress_bar(9, 2, "Paliwo", model.fuel, 100.0, fuel_color)
 
         for i in range(3):
             sec_time = f"{model.sectors[i]:.2f}s" if model.sectors[i] > 0 else "--.--"
             col = model.sector_colors[i]
             curses_col = curses.color_pair(col) | curses.A_BOLD if col > 0 else 0
-            self.stdscr.addstr(12 + i, 2, f"Sektor {i+1}: {sec_time}".ljust(25), curses_col)
+            self.stdscr.addstr(12 + i, 2, f"S{i+1}: {sec_time}".ljust(18), curses_col)
 
-        time_str = f"{model.last_lap_time:.3f} s" if model.last_lap_time > 0 else "--.--- s"
-        best_str = f"{model.best_lap_time:.3f} s" if model.best_lap_time < 900 else "--.--- s"
-        self.stdscr.addstr(12, 30, f"Ostatnie: {time_str}".ljust(25))
-        self.stdscr.addstr(13, 30, f"Najlepsze:{best_str}".ljust(25), curses.color_pair(5) | curses.A_BOLD)
+        time_str = f"{model.last_lap_time:.3f}s" if model.last_lap_time > 0 else "--.---s"
+        best_str = f"{model.best_lap_time:.3f}s" if model.best_lap_time < 900 else "--.---s"
+        self.stdscr.addstr(12, 21, f"Ost: {time_str}".ljust(19))
+        self.stdscr.addstr(13, 21, f"Best:{best_str}".ljust(19), curses.color_pair(5) | curses.A_BOLD)
 
         if self.last_car_pos:
             old_y, old_x = self.last_car_pos
@@ -186,7 +184,7 @@ class ConsoleView:
             self.last_car_pos = (new_y, new_x)
 
         standings = model.get_standings()
-        tower_x = 153
+        tower_x = 126
         for i, driver in enumerate(standings[:20]):
             y = 5 + i
             pos_str = f"{driver['pos']:2d}"
@@ -211,9 +209,10 @@ class ConsoleView:
         self.stdscr.getch()
 
 class Controller:
-    def __init__(self, stdscr):
-        self.model = RaceModel()
+    def __init__(self, stdscr, model=None):
+        self.model = model if model is not None else RaceModel()
         self.view = ConsoleView(stdscr)
+        self.switch_to_gui = False
 
     def run(self):
         last_tick = time.time()
@@ -223,13 +222,23 @@ class Controller:
             key = self.view.get_input()
             if key:
                 k = key.lower()
-                if k == 'q': break
-                elif k == 'p': self.model.call_pitstop()
-                elif k == 't': self.model.cycle_tires()
-                elif k == '1': self.model.set_engine_mode("Eco")
-                elif k == '2': self.model.set_engine_mode("Standard")
-                elif k == '3': self.model.set_engine_mode("Push")
-                elif k == ' ': self.model.toggle_pause()
+                if k == 'q':
+                    break
+                elif k == 'm':
+                    self.switch_to_gui = True
+                    return
+                elif k == 'p':
+                    self.model.call_pitstop()
+                elif k == 't':
+                    self.model.cycle_tires()
+                elif k == '1':
+                    self.model.set_engine_mode("Eco")
+                elif k == '2':
+                    self.model.set_engine_mode("Standard")
+                elif k == '3':
+                    self.model.set_engine_mode("Push")
+                elif k == ' ':
+                    self.model.toggle_pause()
 
             current_time = time.time()
             if current_time - last_tick >= tick_rate:
@@ -252,16 +261,6 @@ class Controller:
         with open("race_telemetry.json", "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
 
-def main(stdscr):
-    app = Controller(stdscr)
-    app.run()
-
 if __name__ == "__main__":
-    try:
-        curses.wrapper(main)
-    except RuntimeError as e:
-        print(f"\n[BŁĄD INTERFEJSU]: {e}\n")
-        input("Naciśnij ENTER, aby zamknąć...")
-    except Exception as e:
-        print(f"\n[NIEOCZEKIWANY BŁĄD]: {e}\n")
-        input("Naciśnij ENTER, aby zamknąć...")
+    from app_gui import run_application
+    run_application(start_mode="tui")
